@@ -196,9 +196,8 @@ describe("Table HTTP Api tests", () => {
       );
     }
 
-    // this test performs a query, rather than a retrieve (which is just a different implementation via
-    // the SDK, but currently lands in the same place in our implementation which is using LokiJs)
-    it("should fail to find a non-existing entity with 404 EntityNotFound", (done) => {
+    // This test performs a query, rather than a retrieve.
+    it("should fail to find a non-existing entity with an empty result", (done) => {
       if (entity1Created === false) {
         const getE1 = setTimeout(() => {
           missingEntityFindTest(done);
@@ -217,11 +216,40 @@ describe("Table HTTP Api tests", () => {
       );
       faillingFindTableService.queryEntities(tableName, query, null, function(
         error,
-        result,
+        results,
         response
       ) {
-        expect(error.message).to.equal(EntityNotFoundErrorMessage);
-        expect(response.statusCode).to.equal(404);
+        expect(error).to.equal(null);
+        expect(results.entries.length).to.equal(0);
+        expect(response.statusCode).to.equal(200);
+        cb();
+      });
+    }
+
+    it("should not fail when a query contains a backtick", (done) => {
+      if (entity1Created === false) {
+        setTimeout(() => {
+          backtickEntityFindTest(done);
+        }, 500);
+      } else {
+        backtickEntityFindTest(done);
+      }
+    });
+
+    function backtickEntityFindTest(cb) {
+      const query = new azureStorage.TableQuery()
+        .where("RowKey eq ?", "`");
+      const retrievalTableService = azureStorage.createTableService(
+        "UseDevelopmentStorage=true"
+      );
+      retrievalTableService.queryEntities(tableName, query, null, function(
+        error,
+        results,
+        response
+      ) {
+        expect(error).to.equal(null);
+        expect(results.entries.length).to.equal(0);
+        expect(response.statusCode).to.equal(200);
         cb();
       });
     }
